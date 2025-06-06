@@ -1,42 +1,82 @@
 import { FC, useMemo } from 'react';
 import { TConstructorIngredient } from '@utils-types';
 import { BurgerConstructorUI } from '@ui';
+import { useDispatch, useSelector } from '../../services/store';
+import { AppDispatch, RootState } from '../../services/store';
+import {
+  createOrder,
+  resetOrderModalData
+} from '../../services/slices/orderSlice';
+import { useNavigate } from 'react-router-dom';
+import { resetConstructor } from '../../services/slices/constructorSlice';
 
 export const BurgerConstructor: FC = () => {
-  /** TODO: взять переменные constructorItems, orderRequest и orderModalData из стора */
-  const constructorItems = {
-    bun: {
-      price: 0
-    },
-    ingredients: []
-  };
+  const dispatch: AppDispatch = useDispatch();
+  const navigate = useNavigate();
 
-  const orderRequest = false;
-
-  const orderModalData = null;
-
-  const onOrderClick = () => {
-    if (!constructorItems.bun || orderRequest) return;
-  };
-  const closeOrderModal = () => {};
-
-  const price = useMemo(
-    () =>
-      (constructorItems.bun ? constructorItems.bun.price * 2 : 0) +
-      constructorItems.ingredients.reduce(
-        (s: number, v: TConstructorIngredient) => s + v.price,
-        0
-      ),
-    [constructorItems]
+  const { bun, ingredients } = useSelector(
+    (state: RootState) => state.constructorReducer
+  );
+  const { isAuthenticated } = useSelector(
+    (state: RootState) => state.userReducer
+  );
+  const { orderRequest, orderModalData } = useSelector(
+    (state: RootState) => state.orderReducer
   );
 
-  return null;
+  // Если булки нет — создаём пустой объект с дефолтными значениями
+  const safeBun = bun?._id
+    ? bun
+    : {
+        _id: '',
+        name: '',
+        type: '',
+        proteins: 0,
+        fat: 0,
+        carbohydrates: 0,
+        calories: 0,
+        price: 0,
+        image: '',
+        image_large: '',
+        image_mobile: ''
+      };
+
+  const price = useMemo(() => {
+    const bunPrice = safeBun.price * 2;
+    const ingredientsPrice = ingredients.reduce(
+      (sum: number, item: TConstructorIngredient) => sum + item.price,
+      0
+    );
+    return bunPrice + ingredientsPrice;
+  }, [safeBun, ingredients]);
+
+  const onOrderClick = () => {
+    if (!safeBun._id || orderRequest) return;
+
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    const orderIds = [
+      safeBun._id,
+      ...ingredients.map((item) => item._id),
+      safeBun._id
+    ];
+
+    dispatch(createOrder(orderIds));
+    dispatch(resetConstructor());
+  };
+
+  const closeOrderModal = () => {
+    dispatch(resetOrderModalData());
+  };
 
   return (
     <BurgerConstructorUI
       price={price}
       orderRequest={orderRequest}
-      constructorItems={constructorItems}
+      constructorItems={{ bun: safeBun, ingredients }}
       orderModalData={orderModalData}
       onOrderClick={onOrderClick}
       closeOrderModal={closeOrderModal}
