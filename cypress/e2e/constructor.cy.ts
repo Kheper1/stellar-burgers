@@ -12,6 +12,7 @@ const selectors = {
   modals: '#modals',
   constructorTop: 'div.constructor-element_pos_top',
   constructorRows: 'span.constructor-element__row',
+  constructorBottom: 'div.constructor-element_pos_bottom'
 };
 
 describe('Тест бургерной', () => {
@@ -136,13 +137,17 @@ describe('Тест бургерной', () => {
 
       cy.get(`${selectors.modals} button:first-of-type`).click();
 
-      cy.get(selectors.orderButton).children().should('have.length', 0);
+      cy.get(selectors.constructorTop).should('not.exist');
+
+      cy.get(selectors.constructorRows).should('not.exist');
+      cy.get(selectors.constructorBottom).should('not.exist');
+
+      
       cy.get(selectors.orderButton).should('be.disabled');
     });
-
     afterEach(() => {
-      cy.clearCookie('accessToken');
-      localStorage.removeItem('refreshToken');
-    });
+      cy.clearCookies();
+      cy.clearLocalStorage();
+    }); 
   });
 });
